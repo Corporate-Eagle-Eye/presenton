@@ -512,7 +512,7 @@ async def generate_presentation_handler(
 
             if request.files:
                 documents_loader = DocumentsLoader(file_paths=request.files)
-                await documents_loader.load_documents()
+                await documents_loader.load_documents(TEMP_FILE_SERVICE.base_dir)
                 documents = documents_loader.documents
                 if documents:
                     additional_context = "\n\n".join(documents)
