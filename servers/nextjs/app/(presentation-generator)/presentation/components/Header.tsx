@@ -269,8 +269,8 @@ const Header = ({
           <Link href="/dashboard" className="min-w-[162px]">
             <img
               className="h-16"
-              src="/logo-white.png"
-              alt="Presentation logo"
+              src="/icon.png"
+              alt="Compose logo"
             />
           </Link>
 
