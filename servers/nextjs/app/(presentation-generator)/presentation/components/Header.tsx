@@ -37,6 +37,7 @@ import { usePresentationUndoRedo } from "../hooks/PresentationUndoRedo";
 import ToolTip from "@/components/ToolTip";
 import { clearPresentationData } from "@/store/slices/presentationGeneration";
 import { clearHistory } from "@/store/slices/undoRedoSlice";
+import { FEATURE_TOGGLES } from "@/lib/feature-toggles";
 
 const Header = ({
   presentation_id,
@@ -264,15 +265,25 @@ const Header = ({
 
         className="bg-[#5146E5] w-full shadow-lg sticky top-0 ">
 
-        <Announcement />
+        {FEATURE_TOGGLES.SHOW_ANNOUNCEMENT && <Announcement />}
         <Wrapper className="flex items-center justify-between py-1">
-          <Link href="/dashboard" className="min-w-[162px]">
-            <img
-              className="h-16"
-              src="/icon.png"
-              alt="Compose logo"
-            />
-          </Link>
+          {FEATURE_TOGGLES.SHOW_LOGO_LINK && FEATURE_TOGGLES.SHOW_DASHBOARD ? (
+            <Link href="/dashboard" className="min-w-[162px]">
+              <img
+                className="h-16"
+                src="/icon.png"
+                alt="Compose logo"
+              />
+            </Link>
+          ) : (
+            <div className="min-w-[162px]">
+              <img
+                className="h-16"
+                src="/icon.png"
+                alt="Compose logo"
+              />
+            </div>
+          )}
 
           {/* Desktop Menu */}
           <div className="hidden lg:flex items-center gap-4 2xl:gap-6">
@@ -282,13 +293,12 @@ const Header = ({
 
 
             <MenuItems mobile={false} />
-            <HeaderNav />
+            {FEATURE_TOGGLES.SHOW_HEADER_NAV && <HeaderNav />}
           </div>
 
           {/* Mobile Menu */}
           <div className="lg:hidden flex items-center gap-4">
-            <HeaderNav />
-
+            {FEATURE_TOGGLES.SHOW_HEADER_NAV && <HeaderNav />}
           </div>
         </Wrapper>
 
