@@ -416,7 +416,14 @@ async def export_presentation_as_pptx(
     )
     pptx_creator.save(pptx_path)
 
-    return pptx_path
+    # Convert filesystem path to URL path
+    app_data_dir = os.getenv("APP_DATA_DIRECTORY", "")
+    if app_data_dir and pptx_path.startswith(app_data_dir):
+        url_path = pptx_path.replace(app_data_dir, "/app_data")
+    else:
+        url_path = pptx_path
+
+    return url_path
 
 
 @PRESENTATION_ROUTER.post("/export", response_model=PresentationPathAndEditPath)
@@ -466,14 +473,16 @@ async def check_if_api_request_is_valid(
         )
 
     # Checking if template is valid
-    if request.template not in DEFAULT_TEMPLATES:
-        request.template = request.template.lower()
-        if not request.template.startswith("custom-"):
+    # Normalize to lowercase for case-insensitive comparison
+    template_lower = request.template.lower()
+    
+    if template_lower not in DEFAULT_TEMPLATES:
+        if not template_lower.startswith("custom-"):
             raise HTTPException(
                 status_code=400,
                 detail="Template not found. Please use a valid template.",
             )
-        template_id = request.template.replace("custom-", "")
+        template_id = template_lower.replace("custom-", "")
         try:
             template = await sql_session.get(TemplateModel, uuid.UUID(template_id))
             if not template:
@@ -483,6 +492,9 @@ async def check_if_api_request_is_valid(
                 status_code=400,
                 detail="Template not found. Please use a valid template.",
             )
+    
+    # Use normalized lowercase template name
+    request.template = template_lower
 
     return (presentation_id,)
 
@@ -751,8 +763,16 @@ async def generate_presentation_handler(
             presentation_id, presentation.title or str(uuid.uuid4()), request.export_as
         )
 
+        # Convert filesystem path to URL path
+        app_data_dir = os.getenv("APP_DATA_DIRECTORY", "")
+        if app_data_dir and presentation_and_path.path.startswith(app_data_dir):
+            url_path = presentation_and_path.path.replace(app_data_dir, "/app_data")
+        else:
+            url_path = presentation_and_path.path
+
         response = PresentationPathAndEditPath(
-            **presentation_and_path.model_dump(),
+            presentation_id=presentation_and_path.presentation_id,
+            path=url_path,
             edit_path=f"/presentation?id={presentation_id}",
         )
 

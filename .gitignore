@@ -19,3 +19,7 @@ container.db
 .next-build
 .cursor
 unused
+AUTHENTICATION.md
+nginx-local.conf
+PRODUCTION_READINESS.md
+servers/nextjs/.env.local

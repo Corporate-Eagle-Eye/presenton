@@ -1,13 +1,19 @@
 import os
-from utils.get_env import get_app_data_directory_env, get_database_url_env
+from utils.get_env import get_db_directory_env, get_database_url_env
 from urllib.parse import urlsplit, urlunsplit, parse_qsl
 import ssl
 
 
 def get_database_url_and_connect_args() -> tuple[str, dict]:
-    database_url = get_database_url_env() or "sqlite:///" + os.path.join(
-        get_app_data_directory_env() or "/tmp/presenton", "fastapi.db"
-    )
+    """
+    Get database URL and connection arguments.
+    Ensures DB directory exists before constructing the URL.
+    """
+    db_dir = get_db_directory_env() or "/tmp/presenton"
+    os.makedirs(db_dir, exist_ok=True)
+    
+    # For absolute paths, sqlite:/// + /absolute/path = sqlite:////absolute/path (4 slashes)
+    database_url = get_database_url_env() or "sqlite:///" + os.path.join(db_dir, "fastapi.db")
 
     if database_url.startswith("sqlite://"):
         database_url = database_url.replace("sqlite://", "sqlite+aiosqlite://", 1)
