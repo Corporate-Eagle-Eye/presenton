@@ -1,25 +1,23 @@
-FROM python:3.11-slim-bullseye
+FROM python:3.11-slim
 
-# Fix repository issues and install system dependencies
-RUN apt-get update --allow-releaseinfo-change && \
-    apt-get install -y --no-install-recommends \
-    apt-transport-https \
-    ca-certificates \
-    gnupg \
-    lsb-release \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install system packages including build tools for SQLite
+# Install system packages first
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    ca-certificates \
+    gnupg \
     nginx \
     libreoffice \
     fontconfig \
     chromium \
     build-essential \
-    wget \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20 using NodeSource repository
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install newer SQLite version (3.44.0) to meet ChromaDB requirements
 RUN cd /tmp && \
@@ -33,13 +31,8 @@ RUN cd /tmp && \
     cd / && \
     rm -rf /tmp/sqlite-autoconf-3440000*
 
-# Update Python to use the new SQLite
-ENV LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
-
-# Install Node.js 20 using NodeSource repository
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
-    rm -rf /var/lib/apt/lists/*
+# Update environment for the new SQLite
+ENV LD_LIBRARY_PATH="/usr/local/lib"
 
 # Create a working directory
 WORKDIR /app  
