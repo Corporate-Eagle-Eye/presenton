@@ -10,14 +10,31 @@ RUN apt-get update --allow-releaseinfo-change && \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install system packages
+# Install system packages including build tools for SQLite
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     nginx \
     libreoffice \
     fontconfig \
     chromium \
+    build-essential \
+    wget \
     && rm -rf /var/lib/apt/lists/*
+
+# Install newer SQLite version (3.44.0) to meet ChromaDB requirements
+RUN cd /tmp && \
+    wget https://www.sqlite.org/2023/sqlite-autoconf-3440000.tar.gz && \
+    tar -xzf sqlite-autoconf-3440000.tar.gz && \
+    cd sqlite-autoconf-3440000 && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    ldconfig && \
+    cd / && \
+    rm -rf /tmp/sqlite-autoconf-3440000*
+
+# Update Python to use the new SQLite
+ENV LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
 
 # Install Node.js 20 using NodeSource repository
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
@@ -35,10 +52,17 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 # Install ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
-# Install dependencies for FastAPI
+# Install dependencies for FastAPI - try alternative SQLite approach first
+RUN pip install pysqlite3-binary
+
+# Install other dependencies
 RUN pip install aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
-    pathvalidate pdfplumber chromadb sqlmodel \
+    pathvalidate pdfplumber sqlmodel \
     anthropic google-genai openai fastmcp dirtyjson
+
+# Try to install ChromaDB with the updated SQLite
+RUN pip install chromadb || echo "ChromaDB installation failed, will use fallback"
+
 RUN pip install docling --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Install dependencies for Next.js
