@@ -1,18 +1,21 @@
 FROM python:3.11-slim-bookworm
 
-# Install Node.js and npm
-RUN apt-get update && apt-get install -y \
+# Fix GPG keys and install system dependencies
+RUN apt-get update && \
+    apt-get install -y ca-certificates gnupg && \
+    apt-get update --allow-releaseinfo-change && \
+    apt-get install -y \
     nginx \
     curl \
     libreoffice \
     fontconfig \
-    chromium
-
+    chromium \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20 using NodeSource repository
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs
-
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create a working directory
 WORKDIR /app  
@@ -21,7 +24,6 @@ WORKDIR /app
 ENV APP_DATA_DIRECTORY=/app_data
 ENV TEMP_DIRECTORY=/tmp/presenton
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-
 
 # Install ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
@@ -54,8 +56,11 @@ COPY start.js LICENSE NOTICE ./
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Expose the port
-EXPOSE 80
+# Create data directories
+RUN mkdir -p /app_data/{images,exports,uploads,fonts}
 
-# Start the servers
-CMD ["node", "/app/start.js"]
+# Expose the correct port
+EXPOSE 8080
+
+# Start the application
+CMD ["node", "start.js"]
