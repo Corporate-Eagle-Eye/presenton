@@ -1,12 +1,19 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.11-slim-bullseye
 
-# Fix GPG keys and install system dependencies
-RUN apt-get update && \
-    apt-get install -y ca-certificates gnupg && \
-    apt-get update --allow-releaseinfo-change && \
-    apt-get install -y \
-    nginx \
+# Fix repository issues and install system dependencies
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get install -y --no-install-recommends \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
+    lsb-release \
     curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install system packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    nginx \
     libreoffice \
     fontconfig \
     chromium \
