@@ -67,7 +67,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 RUN mkdir -p /app_data/{images,exports,uploads,fonts}
 
 # Expose the correct port
-EXPOSE 8080
+EXPOSE 9000
 
 # Start the application
 CMD ["node", "start.js"]
