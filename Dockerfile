@@ -1,23 +1,33 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.11-slim
 
-# Install essential packages with proper cleanup
+# Install basic system packages first
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    nginx \
     curl \
     wget \
     ca-certificates \
     gnupg \
-    build-essential \
-    libreoffice \
-    fontconfig \
-    chromium \
     && rm -rf /var/lib/apt/lists/*
-
 
 # Install Node.js 20 using NodeSource repository
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
+
+# Install nginx and build tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nginx \
+    build-essential \
+    fontconfig \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install office and browser packages separately to avoid conflicts
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libreoffice \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    && rm -rf /var/lib/apt/lists/*
 
 
 # Create a working directory
@@ -28,17 +38,29 @@ ENV APP_DATA_DIRECTORY=/app_data
 ENV TEMP_DIRECTORY=/tmp/presenton
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
+# Install core Python dependencies
+RUN pip install --no-cache-dir \
+    fastapi[standard] \
+    aiohttp \
+    aiomysql \
+    aiosqlite \
+    asyncpg \
+    sqlmodel \
+    pathvalidate \
+    pdfplumber \
+    httpx \
+    anthropic \
+    google-genai \
+    openai \
+    fastmcp \
+    dirtyjson \
+    python-pptx \
+    lxml \
+    pillow
 
-# Install ollama
-RUN curl -fsSL https://ollama.com/install.sh | sh
-
-# Install dependencies for FastAPI with proper error handling
-RUN pip install --no-cache-dir aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
-    pathvalidate pdfplumber sqlmodel httpx \
-    anthropic google-genai openai fastmcp dirtyjson \
-    python-pptx lxml pillow && \
-    pip install --no-cache-dir chromadb || echo "ChromaDB installation failed, continuing..." && \
-    pip install --no-cache-dir docling --extra-index-url https://download.pytorch.org/whl/cpu || echo "Docling installation failed, continuing..."
+# Try to install optional packages
+RUN pip install --no-cache-dir chromadb || echo "ChromaDB installation skipped" && \
+    pip install --no-cache-dir docling --extra-index-url https://download.pytorch.org/whl/cpu || echo "Docling installation skipped"
 
 # Install dependencies for Next.js
 WORKDIR /app/servers/nextjs
