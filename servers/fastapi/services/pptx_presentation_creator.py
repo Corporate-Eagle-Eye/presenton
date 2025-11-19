@@ -177,6 +177,21 @@ class PptxPresentationCreator:
 
     def add_picture(self, slide: Slide, picture_model: PptxPictureBoxModel):
         image_path = picture_model.picture.path
+        
+        # Convert URL path to filesystem path if needed (must happen before any file operations)
+        if image_path.startswith("/app_data"):
+            app_data_dir = os.getenv("APP_DATA_DIRECTORY", "")
+            if app_data_dir:
+                image_path = image_path.replace("/app_data", app_data_dir)
+            else:
+                print(f"APP_DATA_DIRECTORY not set, cannot resolve path: {image_path}")
+                return
+        
+        # Verify the file exists
+        if not os.path.exists(image_path):
+            print(f"Image file not found: {image_path}")
+            return
+        
         if (
             picture_model.clip
             or picture_model.border_radius
@@ -187,8 +202,8 @@ class PptxPresentationCreator:
         ):
             try:
                 image = Image.open(image_path)
-            except:
-                print(f"Could not open image: {image_path}")
+            except Exception as e:
+                print(f"Could not open image: {image_path} - {e}")
                 return
 
             image = image.convert("RGBA")
@@ -308,8 +323,8 @@ class PptxPresentationCreator:
                 shape.width, shape.height
             )
             shape.adjustments[0] = normalized_border_radius
-        except:
-            print("Could not apply border radius.")
+        except Exception as e:
+            print(f"Could not apply border radius: {e}")
 
     def apply_fill_to_shape(self, shape: Shape, fill: Optional[PptxFillModel] = None):
         if not fill:

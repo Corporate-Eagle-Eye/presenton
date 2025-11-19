@@ -109,6 +109,18 @@ const setupUserConfigFromEnv = () => {
 };
 
 const startServers = async () => {
+  // Check SQLite version before starting FastAPI
+  console.log("Checking SQLite version...");
+  const sqliteCheck = spawn("python", ["-c", "import sqlite3; print(f'SQLite version: {sqlite3.sqlite_version}')"], {
+    cwd: fastapiDir,
+    stdio: "inherit",
+    env: process.env,
+  });
+
+  await new Promise((resolve) => {
+    sqliteCheck.on("exit", resolve);
+  });
+
   const fastApiProcess = spawn(
     "python",
     ["server.py", "--port", fastapiPort.toString(), "--reload", isDev],

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { RootState } from "@/store/store";
 import { useSelector } from "react-redux";
+import { FEATURE_TOGGLES } from "@/lib/feature-toggles";
 
 const HeaderNav = () => {
 
@@ -15,19 +16,21 @@ const HeaderNav = () => {
   return (
     <div className="flex items-center gap-2">
 
-      <Link
-        href="/dashboard"
-        prefetch={false}
-        className="flex items-center gap-2 px-3 py-2 text-white hover:bg-primary/80 rounded-md transition-colors outline-none"
-        role="menuitem"
-        onClick={() => trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/dashboard" })}
-      >
-        <LayoutDashboard className="w-5 h-5" />
-        <span className="text-sm font-medium font-inter">
-          Dashboard
-        </span>
-      </Link>
-      {canChangeKeys && (
+      {FEATURE_TOGGLES.SHOW_DASHBOARD && (
+        <Link
+          href="/dashboard"
+          prefetch={false}
+          className="flex items-center gap-2 px-3 py-2 text-white hover:bg-primary/80 rounded-md transition-colors outline-none"
+          role="menuitem"
+          onClick={() => trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/dashboard" })}
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          <span className="text-sm font-medium font-inter">
+            Dashboard
+          </span>
+        </Link>
+      )}
+      {canChangeKeys && FEATURE_TOGGLES.SHOW_SETTINGS && (
         <Link
           href="/settings"
           prefetch={false}

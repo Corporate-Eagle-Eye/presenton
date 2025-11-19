@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   page.setDefaultNavigationTimeout(300000);
   page.setDefaultTimeout(300000);
 
-  await page.goto(`http://localhost/pdf-maker?id=${id}`, {
+  await page.goto(`${process.env.NEXT_PUBLIC_BASE_URL}/pdf-maker?id=${id}`, {
     waitUntil: "networkidle0",
     timeout: 300000,
   });
@@ -89,8 +89,12 @@ export async function POST(req: NextRequest) {
   await fs.promises.mkdir(path.dirname(destinationPath), { recursive: true });
   await fs.promises.writeFile(destinationPath, pdfBuffer);
 
+  // Convert filesystem path to URL path
+  const appDataDir = process.env.APP_DATA_DIRECTORY!;
+  const urlPath = destinationPath.replace(appDataDir, "/app_data");
+
   return NextResponse.json({
     success: true,
-    path: destinationPath,
+    path: urlPath,
   });
 }

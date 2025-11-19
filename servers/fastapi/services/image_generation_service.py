@@ -66,8 +66,12 @@ class ImageGenerationService:
                 if image_path.startswith("http"):
                     return image_path
                 elif os.path.exists(image_path):
+                    # Convert absolute filesystem path to relative URL path
+                    relative_path = os.path.relpath(image_path, self.output_directory)
+                    url_path = f"/app_data/images/{relative_path}"
+                    
                     return ImageAsset(
-                        path=image_path,
+                        path=url_path,
                         is_uploaded=False,
                         extras={
                             "prompt": prompt.prompt,
