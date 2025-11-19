@@ -1,17 +1,14 @@
 FROM python:3.11-slim
 
-# Install system packages first
+# Install essential packages only
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
     wget \
     ca-certificates \
     gnupg \
-    nginx \
-    libreoffice \
-    fontconfig \
-    chromium \
     build-essential \
+    nginx \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20 using NodeSource repository
@@ -19,43 +16,28 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-# Install newer SQLite version (3.44.0) to meet ChromaDB requirements
-RUN cd /tmp && \
-    wget https://www.sqlite.org/2023/sqlite-autoconf-3440000.tar.gz && \
-    tar -xzf sqlite-autoconf-3440000.tar.gz && \
-    cd sqlite-autoconf-3440000 && \
-    ./configure --prefix=/usr/local && \
-    make && \
-    make install && \
-    ldconfig && \
-    cd / && \
-    rm -rf /tmp/sqlite-autoconf-3440000*
-
-# Update environment for the new SQLite
-ENV LD_LIBRARY_PATH="/usr/local/lib"
-
 # Create a working directory
 WORKDIR /app  
 
 # Set environment variables
 ENV APP_DATA_DIRECTORY=/app_data
 ENV TEMP_DIRECTORY=/tmp/presenton
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Install ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
-# Install dependencies for FastAPI - try alternative SQLite approach first
+# Install Python dependencies with simplified SQLite handling
 RUN pip install pysqlite3-binary
 
-# Install other dependencies
+# Install core dependencies
 RUN pip install aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
     pathvalidate pdfplumber sqlmodel \
     anthropic google-genai openai fastmcp dirtyjson
 
-# Try to install ChromaDB with the updated SQLite
-RUN pip install chromadb || echo "ChromaDB installation failed, will use fallback"
+# Install ChromaDB with fallback
+RUN pip install chromadb || echo "ChromaDB installation skipped"
 
+# Install docling
 RUN pip install docling --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Install dependencies for Next.js
