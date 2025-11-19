@@ -202,8 +202,8 @@ class PptxPresentationCreator:
         ):
             try:
                 image = Image.open(image_path)
-            except:
-                print(f"Could not open image: {image_path}")
+            except Exception as e:
+                print(f"Could not open image: {image_path} - {e}")
                 return
 
             image = image.convert("RGBA")
@@ -323,8 +323,8 @@ class PptxPresentationCreator:
                 shape.width, shape.height
             )
             shape.adjustments[0] = normalized_border_radius
-        except:
-            print("Could not apply border radius.")
+        except Exception as e:
+            print(f"Could not apply border radius: {e}")
 
     def apply_fill_to_shape(self, shape: Shape, fill: Optional[PptxFillModel] = None):
         if not fill:

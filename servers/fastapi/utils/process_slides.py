@@ -1,5 +1,5 @@
 import asyncio
-from typing import List, Tuple
+from typing import List
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
 from models.sql.slide import SlideModel

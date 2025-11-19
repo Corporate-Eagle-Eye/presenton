@@ -223,7 +223,7 @@ async def prepare_presentation(
                     i + 1 if presentation.include_title_slide else i,
                     toc_slide_layout_index,
                 )
-                toc_outline = f"Table of Contents\n\n"
+                toc_outline = "Table of Contents\\n\\n"
 
                 for outline in presentation_outline_model.slides[
                     outline_index:outlines_to
@@ -589,7 +589,7 @@ async def generate_presentation_handler(
 
         # Updating async status
         if async_status:
-            async_status.message = f"Selecting layout for each slide"
+            async_status.message = "Selecting layout for each slide"
             async_status.updated_at = datetime.now()
             sql_session.add(async_status)
             await sql_session.commit()
@@ -638,7 +638,7 @@ async def generate_presentation_handler(
                         i + 1 if request.include_title_slide else i,
                         toc_slide_layout_index,
                     )
-                    toc_outline = f"Table of Contents\n\n"
+                    toc_outline = "Table of Contents\\n\\n"
 
                     for outline in presentation_outlines.slides[
                         outline_index:outlines_to

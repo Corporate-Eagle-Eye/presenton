@@ -1,14 +1,5 @@
 import asyncio
 import json
-import os
-import sys
-
-# Try to patch SQLite before importing chromadb
-try:
-    from sqlite_patcher import patch_sqlite
-    patch_sqlite()
-except ImportError:
-    pass
 
 try:
     import chromadb
@@ -43,71 +34,72 @@ class IconFinderService:
             self.chromadb_enabled = False
 
     def _initialize_icons_collection(self):
-        if not CHROMADB_AVAILABLE:
-            return
-            
-        self.embedding_function = ONNXMiniLM_L6_V2()
-        self.embedding_function.DOWNLOAD_PATH = "chroma/models"
-        self.embedding_function._download_model_if_not_exists()
+        """Initialize the ChromaDB collection for icon search."""
         try:
-            self.collection = self.client.get_collection(
-                self.collection_name, embedding_function=self.embedding_function
-            )
-        except Exception:
-            with open("assets/icons.json", "r") as f:
-                icons = json.load(f)
+            self.embedding_function = ONNXMiniLM_L6_V2()
+            self.embedding_function.DOWNLOAD_PATH = "chroma/models"
+            self.embedding_function._download_model_if_not_exists()
+            
+            # Try to get existing collection first
+            try:
+                self.collection = self.client.get_collection(
+                    self.collection_name, embedding_function=self.embedding_function
+                )
+                return
+            except Exception:
+                # Collection doesn't exist, create it
+                pass
+            
+            # Load icons from file
+            icons_path = "assets/icons.json"
+            try:
+                with open(icons_path, "r") as f:
+                    icons = json.load(f)
+            except FileNotFoundError:
+                print(f"Icons file not found at {icons_path}")
+                self.chromadb_enabled = False
+                return
+            except json.JSONDecodeError as e:
+                print(f"Error parsing icons JSON: {e}")
+                self.chromadb_enabled = False
+                return
 
             documents = []
             ids = []
 
-            for i, each in enumerate(icons["icons"]):
-                if each["name"].split("-")[-1] == "bold":
-                    doc_text = f"{each['name']} {each['tags']}"
-                    documents.append(doc_text)
-                    ids.append(each["name"])
+            # Process icons and build documents for embedding
+            if "icons" in icons:
+                for i, each in enumerate(icons["icons"]):
+                    if each.get("name", "").split("-")[-1] == "bold":
+                        doc_text = f"{each.get('name', '')} {each.get('tags', '')}"
+                        documents.append(doc_text)
+                        ids.append(each["name"])
 
+            # Create collection if we have documents
             if documents:
-                self.collection = self.client.create_collection(
-                    name=self.collection_name,
-                    embedding_function=self.embedding_function,
-                    metadata={"hnsw:space": "cosine"},
-                )
-                self.collection.add(documents=documents, ids=ids)
-
-    def _fallback_search_icons(self, query: str, k: int = 1):
-        """Fallback method when ChromaDB is not available"""
-        try:
-            with open("assets/icons.json", "r") as f:
-                icons = json.load(f)
-            
-            # Simple keyword matching
-            query_lower = query.lower()
-            matches = []
-            
-            for icon in icons["icons"]:
-                if icon["name"].split("-")[-1] == "bold":
-                    name_match = query_lower in icon["name"].lower()
-                    tags_match = any(query_lower in tag.lower() for tag in icon.get("tags", []))
-                    
-                    if name_match or tags_match:
-                        matches.append(icon["name"])
-            
-            # Return top k matches or default icons if no matches
-            if matches:
-                return matches[:k]
+                try:
+                    self.collection = self.client.create_collection(
+                        name=self.collection_name,
+                        embedding_function=self.embedding_function,
+                        metadata={"hnsw:space": "cosine"},
+                    )
+                    self.collection.add(documents=documents, ids=ids)
+                except Exception as e:
+                    print(f"Failed to create or populate collection: {e}")
+                    self.chromadb_enabled = False
             else:
-                # Return some default icons
-                default_icons = ["document-text-bold", "presentation-bold", "file-bold"]
-                return default_icons[:k]
+                print("No valid icons found to populate collection")
+                self.chromadb_enabled = False
+                
         except Exception as e:
-            print(f"Error in fallback icon search: {e}")
-            return ["document-text-bold"]
+            print(f"Error initializing icons collection: {e}")
+            self.chromadb_enabled = False
 
     async def search_icons(self, query: str, k: int = 1):
-        if not self.chromadb_enabled:
-            # Use fallback method
-            icon_names = self._fallback_search_icons(query, k)
-            return [f"/static/icons/bold/{name}.svg" for name in icon_names]
+        """Search for icons based on query. Falls back to default icon if ChromaDB unavailable."""
+        if not self.chromadb_enabled or not hasattr(self, 'collection'):
+            # Fallback to default icon when ChromaDB is not available
+            return ["/static/icons/bold/document.svg"]
         
         try:
             result = await asyncio.to_thread(
@@ -115,12 +107,14 @@ class IconFinderService:
                 query_texts=[query],
                 n_results=k,
             )
-            return [f"/static/icons/bold/{each}.svg" for each in result["ids"][0]]
+            if result and result.get("ids") and result["ids"][0]:
+                return [f"/static/icons/bold/{icon}.svg" for icon in result["ids"][0]]
+            else:
+                # Return default icon if no results found
+                return ["/static/icons/bold/document.svg"]
         except Exception as e:
-            print(f"Error in ChromaDB icon search: {e}")
-            # Fall back to static search
-            icon_names = self._fallback_search_icons(query, k)
-            return [f"/static/icons/bold/{name}.svg" for name in icon_names]
+            print(f"Error searching icons: {e}")
+            return ["/static/icons/bold/document.svg"]
 
 
 ICON_FINDER_SERVICE = IconFinderService()
